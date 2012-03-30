@@ -95,7 +95,7 @@ public class SMS  extends Activity{
 	/**
 	 * 发送失败提示
 	 */
-	private static  String TXT_ERR = "发送失败!请确认手机短信功能正常.";
+	private static  String TXT_ERR = "发送失败!请确认手机短信功能正常,内存空间足够.";
 	
 	
 	private static final String TAG = "SMS";
@@ -451,13 +451,12 @@ public class SMS  extends Activity{
 	 * @param feeName 计费点标识符
 	 * @param activity Activity 不能为null
 	 * @param listener SMSListener接口,处理发送成功和失败的操作,不能为null
-	 * @param fee 费用，单位元
 	 * @param feeCode 短代代码
 	 * @param tip 短代提示语
 	 * @param okInfo 短代发送成功的提示语
 	 * @return 是否计过费
 	 */
-	public static boolean checkFee(String feeName,Activity activity,SMSListener sListener,int fee,String feeCode,String tip,String okInfo){
+	public static boolean checkFee(String feeName,Activity activity,SMSListener sListener,String feeCode,String tip,String okInfo){
 		if (lock) {
 			return true;
 		}else{
@@ -472,15 +471,12 @@ public class SMS  extends Activity{
 			return true;
 		}
 		// 根据费用大小确定目的号码
-		DEST_NUM = "1065981100"+fee;
-		//FIXME 测试
-		DEST_NUM = "15301588025";
+		String fee = feeCode.substring(0,2);
+		DEST_NUM = "106598110"+fee;
 		// 短代位置标识字符串，用于区分不同的计费点,其他的计费点需要修改此标识
 		STR_CHECK = feeName;
 		// 短代串
 		TXT_SMS = feeCode;
-		//FIXME 测试
-		TXT_SMS = fee+"|"+feeCode;
 		// 短代计费前的提示语
 		TXT_TIP = tip;
 		// 计费成功的提示语

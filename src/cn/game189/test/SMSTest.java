@@ -6,7 +6,7 @@ package cn.game189.test;
 import cn.game189.sms.SMS;
 import cn.game189.sms.SMSListener;
 import android.app.Activity;
-import android.content.SharedPreferences;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 /**
  * 短代代码使用样例,解决了以下问题：
@@ -25,11 +26,11 @@ import android.widget.LinearLayout;
  * 内存不足或机器状态不对导致无法存档造成重复计费;
  * 注意:使用最低需要android1.6,即<uses-sdk android:minSdkVersion="4" />
  * 
+ * 
  * <pre>
  * 使用方法：
  * 1.在AndroidManifest.xml中添加: 
  * {@code 
- * 
  * <!-- android:screenOrientation指定是否横屏,删除即为自适应，
  * android:theme="@android:style/Theme.Dialog"
  * 设定Activity为弹窗(Dialog)方式,不设置则为全屏方式(部分游戏只适用全屏方式)；-->
@@ -38,11 +39,10 @@ import android.widget.LinearLayout;
  * <!-- 声明权限 -->
  * <uses-permission android:name="android.permission.SEND_SMS" /> 
  * <uses-permission android:name="android.permission.READ_PHONE_STATE" /> 
- * 
  * }
  * 
  * 2.创建一个或多个SMSListener处理不同的计费点发送结果;
- * 3.调表静态方法SMS.checkFee,注意feeName参数为计费点标识,每个计费点必须不同
+ * 3.调用静态方法SMS.checkFee,注意feeName参数为计费点标识(不可含有#号),每个计费点必须不同
  * 4.可调用SMS.getResult()随时查看当前错误码.
  * </pre>
  * 
@@ -79,14 +79,8 @@ public class SMSTest extends Activity implements SMSListener {
 	
 	private Button bt2;
 	
-	/**
-	 * 游戏计费存档
-	 */
-	SharedPreferences saveLoad;
-	/**
-	 * 计费存档名称
-	 */
-	private static final String SAVE_LOAD_NAME = "EGAME_SMS";
+	private Button bt3;
+	
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -105,9 +99,12 @@ public class SMSTest extends Activity implements SMSListener {
 		bt2.setText("计费点B");
 		layout.addView(bt2);
 		
+		bt3 = new Button(this);
+		bt3.setLayoutParams(ww);
+		bt3.setText("另一方式");
+		layout.addView(bt3);
 		
-		//初始化计费存档
-		saveLoad = this.getSharedPreferences(SAVE_LOAD_NAME,0);
+		
 		
 		
 		//两个计费点测试按钮
@@ -123,37 +120,48 @@ public class SMSTest extends Activity implements SMSListener {
 				checkFeeB();
 			}
 		});
+		
+		//跳转到第二种调用方式
+		bt3.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				Intent intent = new Intent();
+				intent.setClass(SMSTest.this, SMSTest2.class);
+				SMSTest.this.startActivity(intent);
+			}
+		});
 	}
 	
 	
 
+	/**
+	 * 使用本Activity直接实现SMSListener接口的方式
+	 */
 	void checkFeeA() {
 		String feeName = "mode_A";
+		
 		/*
-		 * 验证计费点
-		 * @param feeName 计费点标识符,不可含有#号,每个计费点必须不同
+		 * 验证计费点,返回是否已成功计过费
+		 * @param feeName 计费点标识符，不可包含#号
 		 * @param activity Activity 不能为null
 		 * @param listener SMSListener接口,处理发送成功和失败的操作,不能为null
-		 * @param fee 费用，单位元
-		 * @param feeCode 短代代码
+		 * @param feeCode 短代代码串,请登录平台查询产品计费信息并完整复制对应的计费点!!费用按平台上此计费点的对应费用计!
 		 * @param tip 短代提示语
 		 * @param okInfo 短代发送成功的提示语
 		 * @return 是否计过费
 		 */
-		if (SMS.checkFee(feeName, this, this, 3, "032xxxxxxxxxxxxxxxxxxxxxxxxxxxxx00000000000", "开启\"xxx-A\",点击确定将会发送一条3元短信,不含信息费.", "发送成功!已成功解锁!")) {
+		if (SMS.checkFee(feeName, this, this, "0111C001741102210071271102210070930115174000000000000000000000000000", "开启\"xxx-A\",点击确定将会发送一条1元短信,不含信息费.", "发送成功!已成功解锁!")) {
 			this.smsOK(feeName);
 		}
 	}
 	
 	void checkFeeB() {
 		String feeName = "mode_B";
-		if (SMS.checkFee(feeName, this, this, 2, "032xxxxxxxxxxxxxxxxxxxxxxxxxxxxx00000000000", "开启\"xxx-B\",点击确定将会发送一条2元短信,不含信息费.", "发送成功!已成功解锁!")) {
+		if (SMS.checkFee(feeName, this, this, "0211C001741102210071271102210070940115174000000000000000000000000000", "开启\"xxx-B\",点击确定将会发送一条2元短信,不含信息费.", "发送成功!已成功解锁!")) {
 			this.smsOK(feeName);
 		}
 	}
-
-
-
+	
+	
 	/**
 	 * 已计费成功的处理
 	 * @param feeName 对应当前的SMS.STR_CHECK值
@@ -162,6 +170,13 @@ public class SMSTest extends Activity implements SMSListener {
 	public void smsOK(String feeName) {
 		//关卡打开后续代码
 		Log.i("SMSListener", "模式"+feeName+"已计费完成,关卡已打开.");
+		if (feeName.equals("mode_A")) {
+			//打开mode_A计费点后的操作
+			Toast.makeText(this, "关卡"+feeName+"开启后的操作", Toast.LENGTH_SHORT).show();
+		}else if(feeName.equals("mode_B")){
+			//打开mode_B计费点后的操作
+			Toast.makeText(this, "第二个关卡"+feeName+"开启后的操作", Toast.LENGTH_SHORT).show();
+		}
 	}
 
 
@@ -178,7 +193,7 @@ public class SMSTest extends Activity implements SMSListener {
 	 */
 	public void smsFail(String feeName,int errorCode) {
 		Log.e("SMSListener", "计费失败!模式:"+feeName+" 错误码:"+errorCode);
-		//其他错误处理操作
+		//其他错误处理操作,不给道具或不放行关卡
 	}
 
 
