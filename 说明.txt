@@ -1,0 +1,50 @@
+爱游戏Android短代代码使用样例,解决了以下问题：
+
+* 防止过快点击造成重复计费;
+* 内存不足或机器状态不对导致无法存档造成重复计费;
+* 覆盖升级安装能保留原已计过费的计费点(卸载后会清除);
+* 防止单机游戏置换存档破解;
+* 防止修改短信中心破解;
+* 防止无卡或废卡破解;
+* 防止双卡双待手机使用移动卡破解;
+* 注意:使用最低需要Android1.6t系统,即<uses-sdk android:minSdkVersion="4" />
+
+
+使用方法：
+1.在项目中引入sms.jar包;
+2.在AndroidManifest.xml中添加: 
+<!-- 声明权限 -->
+<uses-permission android:name="android.permission.SEND_SMS" /> 
+<uses-permission android:name="android.permission.READ_PHONE_STATE" /> 
+
+<activity android:name="cn.game189.sms.SMS"  android:theme="@android:style/Theme.Dialog" ></activity> 
+<!-- 可使用android:screenOrientation指定是否横屏,删除即为自适应，
+android:theme="@android:style/Theme.Dialog"
+设定Activity为弹窗(Dialog)方式,不设置则为全屏方式(部分游戏只适用全屏方式)；-->
+
+
+3.创建一个或多个SMSListener处理不同的计费点发送结果,具体使用详见样例代码;
+4.调用静态方法SMS.checkFee(),注意feeName参数为计费点标识(不可含有#号),每个计费点必须不同
+5.可调用SMS.getResult()随时查看当前错误码.
+
+
+
+
+错误码(可通过SMS.getResult()随时获取):
+0.初始值或取消发送
+1.已计过费
+2.发送短信成功
+-1.发送失败
+-2.无卡
+-3.非电信卡
+-4.获取终端码失败
+-5.保存计费点失败
+-6.获取存档数据有误
+-7.获取存档时读终端码失败
+-8.获取存档时feeName不匹配
+-9.获取存档时终端码不匹配
+-10.获取存档发生异常 
+-11.feeName不合法,可能包含#号
+
+
+
