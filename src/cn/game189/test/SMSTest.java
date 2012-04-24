@@ -74,6 +74,7 @@ import android.widget.Toast;
  * 
  */
 public class SMSTest extends Activity implements SMSListener {
+	//采用本Activity实现SMSListener接口，必须实现smsOK和smsFail接口
 
 	
 	private Button bt1;
@@ -171,6 +172,7 @@ public class SMSTest extends Activity implements SMSListener {
 		 * @return 返回是否已计过费
 		 */
 		if (SMS.checkFee(feeName, this, this, "0111C001741102210071271102210070930115174000000000000000000000000000", "开启\"xxx-A\",点击确定将会发送一条1元短信,不含信息费.", "发送成功!已成功解锁!")) {
+			//在这里处理该计费点已扣过费后的处理
 			Toast.makeText(this, "已计过费，直接进入关卡"+feeName, Toast.LENGTH_SHORT).show();
 		}
 	}
@@ -188,6 +190,7 @@ public class SMSTest extends Activity implements SMSListener {
 		 * @return 返回是否已计过费
 		 */
 		if (SMS.checkFee(feeName, this, this, "0211C001741102210071271102210070940115174000000000000000000000000000", "开启\"xxx-B\",点击确定将会发送一条2元短信,不含信息费.", "发送成功!已成功解锁!")) {
+			//在这里处理该计费点已扣过费后的处理
 			Toast.makeText(this, "已计过费，直接进入关卡"+feeName, Toast.LENGTH_SHORT).show();
 		}
 	}
@@ -241,6 +244,13 @@ public class SMSTest extends Activity implements SMSListener {
 		Log.e("SMSListener", "计费失败!计费点:"+feeName+" 错误码:"+errorCode);
 		//其他错误处理操作,不给道具或不放行关卡
 	}
+
+
+
+//	public void smsCancel(String feeName, int errorCode) {
+//		Log.e("SMSListener", "用户点击取消!计费点:"+feeName+" 错误码:"+errorCode);
+//		
+//	}
 
 
 }

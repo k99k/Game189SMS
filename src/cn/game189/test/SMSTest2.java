@@ -91,6 +91,10 @@ public class SMSTest2 extends Activity {
 						//短代发送失败,不给道具或不放行关卡
 						Log.e("SMSListener", "计费失败!模式:["+feeName+"] 错误码:"+errorCode);
 					}
+
+//					public void smsCancel(String feeName, int errorCode) {
+//						Log.e("SMSListener", "用户点击取消!计费点:"+feeName+" 错误码:"+errorCode);
+//					}
 				},  "0111C001741102210071271102210070930115174000000000000000000000000000", "开启第二种方式"+feeName+",点击确定将会发送一条1元短信,不含信息费.", "发送成功!已成功解锁!")) {
 					//已计过费
 					Toast.makeText(SMSTest2.this, "已计过费,关卡"+feeName+"开启后的操作", Toast.LENGTH_SHORT).show();
@@ -124,6 +128,11 @@ public class SMSTest2 extends Activity {
 					public void smsFail(String feeName, int errorCode) {
 						Log.e("SMSListener", "第二个计费失败!模式:["+feeName+"] 错误码:"+errorCode);
 					}
+
+//					public void smsCancel(String feeName, int errorCode) {
+//						Log.e("SMSListener", "用户点击取消!计费点:"+feeName+" 错误码:"+errorCode);
+//						
+//					}
 				}, "0211C001741102210071271102210070940115174000000000000000000000000000", "开启第二种方式"+feeName+",点击确定将会发送一条2元短信,不含信息费.", "发送成功!已成功解锁!")) {
 					//已计过费
 					Log.i("SMSListener", "第二个模式"+feeName+"已计费完成,关卡已打开.");
@@ -147,6 +156,10 @@ public class SMSTest2 extends Activity {
 					public void smsFail(String feeName, int errorCode) {
 						Log.e("SMSListener", "原地复活计费失败!模式:["+feeName+"] 错误码:"+errorCode);
 					}
+
+//					public void smsCancel(String feeName, int errorCode) {
+//						Log.e("SMSListener", "用户点击取消!计费点:"+feeName+" 错误码:"+errorCode);
+//					}
 				}, "0111C001741102210073711102210072550115174000000000000000000000000000", "使用“原地复活”功能,点击确定将会发送一条1元短信,不含信息费.", "发送成功!已成功复活!");
 			}
 		});

@@ -37,22 +37,22 @@ import android.widget.TextView;
  * 
  * <pre>
  * 使用方法：
- * 1.在AndroidManifest.xml中添加: 
+ * 1.在项目中引入sms.jar包;
+ * 2.在AndroidManifest.xml中添加: 
  * {@code 
+ * <!-- 声明权限 -->
+ * <uses-permission android:name="android.permission.SEND_SMS" /> 
+ * <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+ * 
+ * <activity android:name="cn.game189.sms.SMS"  android:theme="@android:style/Theme.Dialog" ></activity> 
  * <!-- android:screenOrientation指定是否横屏,删除即为自适应，
  * android:theme="@android:style/Theme.Dialog"
  * 设定Activity为弹窗(Dialog)方式,不设置则为全屏方式(部分游戏只适用全屏方式)；-->
- * <activity android:name="cn.game189.sms.SMS"  android:theme="@android:style/Theme.Dialog" ></activity> 
  * 
- * <!-- 声明权限 -->
- * <uses-permission android:name="android.permission.SEND_SMS" /> 
- * <uses-permission android:name="android.permission.READ_PHONE_STATE" /> 
  * }
- * 
- * 2.在需要时调用静态方法SMS.toSMS(Activity a)即可弹出短信发送窗口;
- * 3.saveIni和getIniXXX方法可存储和更新短信发送后的效果;
- * 4.可修改sendOK,sendErr,sendCancel方法;
- * 5.使用前需要修改DEST_NUM,TXT_SMS等信息;
+ * 3.创建一个或多个SMSListener处理不同的计费点短信发送结果,具体使用详见样例代码。
+ * 4.调用静态方法SMS.checkFee()判断是否已计费,注意feeName参数为计费点标识(不可含有#号),每个计费点必须不同。在未成功计费时会自动弹出计费确认提示框，此时checkFee方法返回false。在弹出计费提示框后，通过SMSListener的smsOK接口可判断用户是否确认计费并成功发送短信，可在smsOK方法中处理本次计费成功后的操作（如打开关卡，提供对应道具等），在短信发送成功后会自动加密保存已计费状态(与设备号绑定加密)，下次调用checkFee方法时将返回true。
+ * 5.可调用SMS.getResult()随时查看当前错误码.
  * </pre>
  * 
  * @author keel
@@ -120,6 +120,9 @@ public class SMS  extends Activity{
 	private static int SMS_CLOSE = SMS_CANCEL;
 	private final int WARP = FrameLayout.LayoutParams.WRAP_CONTENT;
 	private final int FILL = FrameLayout.LayoutParams.FILL_PARENT;
+	/**
+	 * 是否已注册短信Broadcast的Receiver
+	 */
 	private boolean isReg = false;
 	/**
 	 * <pre>
@@ -155,6 +158,7 @@ public class SMS  extends Activity{
 	public final static int RE_ERR_READ_IMEI = -9;
 	public final static int RE_ERR_READ = -10;
 	public final static int RE_ERR_SAVE_FEENAME = -11;
+	public final static int RE_ERR_UNSAVE = -12;
 	
 	/**
 	 * 回传短信发送结果的标记
@@ -162,11 +166,12 @@ public class SMS  extends Activity{
 	private static final int RE = 10; 
 	
 	/**
-	 * 避免高速点击的锁
+	 * 避免高速点击产生多个计费提示框的锁
 	 */
 	private static boolean lock = false;
 	
 	/**
+	 * 显示计费提示框
 	 * @param a 发起调用的Activity
 	 */
 	private static void toSMS(Activity a){
@@ -191,6 +196,7 @@ public class SMS  extends Activity{
 		//params.setMargins(20, 20, 20, 20);
 		params.gravity = Gravity.CENTER;
 		layout.setLayoutParams(params);
+		//layout.setGravity(Gravity.CENTER);
 		layout.setPadding(10, 10, 10, 10);
 		layout.setBackgroundColor(Color.argb(100, 80, 80, 80));
 		
@@ -201,6 +207,7 @@ public class SMS  extends Activity{
 		up.setPadding(15, 15, 15, 15);
 		txt1 = new TextView(this);
 		ViewGroup.LayoutParams ww = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
+//		ViewGroup.LayoutParams fw = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
 		txt1.setLayoutParams(ww);
 		txt1.setText(TXT_TIP);
 		txt1.setTextColor(Color.argb(255, 255, 255, 255));
@@ -210,26 +217,35 @@ public class SMS  extends Activity{
 		LinearLayout down = new LinearLayout(this);
 		down.setLayoutParams(p_up);
 		down.setBackgroundColor(Color.argb(255, 36, 36, 36));
+		down.setGravity(Gravity.CENTER_HORIZONTAL);
+		//warp,warp,1
+		LinearLayout.LayoutParams ww1 = new LinearLayout.LayoutParams(WARP,WARP,1);
+		
 		bt1 = new Button(this);
-		bt1.setLayoutParams(ww);
-		bt1.setPadding(10, 10, 10, 10);
+		
+		bt1.setLayoutParams(ww1);
+		bt1.setPadding(15, 15, 15, 15);
 		bt1.setText(TXT_BT1);
 		bt1.setTextColor(Color.argb(255, 0, 0, 0));
 		bt1.setBackgroundColor(Color.argb(255, 255, 255, 255));
-		bt1.setWidth(100);
+		//bt1.setWidth(150);
 		down.addView(bt1);
-		LinearLayout empty = new LinearLayout(this);
-		LinearLayout.LayoutParams p_empty = new LinearLayout.LayoutParams(WARP,WARP,1);
-		empty.setLayoutParams(p_empty);
-		empty.setWeightSum(1);
-		down.addView(empty);
+		//LinearLayout empty = new LinearLayout(this);
+		//LinearLayout.LayoutParams p_empty = new LinearLayout.LayoutParams(WARP,WARP,1);
+		//empty.setLayoutParams(ww1);
+		//empty.setWeightSum(1);
+		//down.addView(empty);
+		//按钮间隔
+		TextView empTxt = new TextView(this);
+		empTxt.setWidth(40);
+		down.addView(empTxt);
 		bt2 = new Button(this);
-		bt2.setLayoutParams(ww);
-		bt2.setPadding(10, 10, 10, 10);
+		bt2.setLayoutParams(ww1);
+		bt2.setPadding(15, 15, 15, 15);
 		bt2.setText(TXT_BT2);
 		bt1.setTextColor(Color.argb(255, 0, 0, 0));
 		bt2.setBackgroundColor(Color.argb(255, 255, 255, 255));
-		bt2.setWidth(90);
+		//bt2.setWidth(120);
 		down.addView(bt2);
 		layout.addView(down);
 		
@@ -250,35 +266,28 @@ public class SMS  extends Activity{
 		//Log.i(TAG, System.currentTimeMillis()+"SMS started.");
 	}
 	
-	private boolean checkIMSI(){
-		TelephonyManager telManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);  
-		/** 获取SIM卡的IMSI码 
-		 * SIM卡唯一标识：IMSI 国际移动用户识别码（IMSI：International Mobile Subscriber Identification Number）是区别移动用户的标志， 
-		 * 储存在SIM卡中，可用于区别移动用户的有效信息。IMSI由MCC、MNC、MSIN组成，其中MCC为移动国家号码，由3位数字组成， 
-		 * 唯一地识别移动客户所属的国家，我国为460；MNC为网络id，由2位数字组成， 
-		 * 用于识别移动客户所归属的移动网络，中国移动为00，中国联通为01,中国电信为03；MSIN为移动客户识别码，采用等长11位数字构成。 
-		 * 唯一地识别国内GSM移动通信网中移动客户。所以要区分是移动还是联通，只需取得SIM卡中的MNC字段即可 
+	private class SendThread extends Thread{
+
+		/* (non-Javadoc)
+		 * @see java.lang.Thread#run()
 		 */
-		String imsi = telManager.getSubscriberId();
-		if (imsi != null) {
-			if (imsi.startsWith("46003")) {
-				// 中国电信
-				return true;
+		@Override
+		public void run() {
+			//是否电信卡,同时提前保存计费成功存档,然后发送短信
+			if (checkIMSI() && saveFee(STR_CHECK)) {
+				// 发短信
+				PendingIntent sentPI = PendingIntent.getBroadcast(SMS.this, 0,
+						new Intent(SENT), 0);
+				registerReceiver(smsCheck, new IntentFilter(SENT));
+				isReg = true;
+				smsm.sendTextMessage(DEST_NUM, null,TXT_SMS, sentPI, null);
 			}else{
-				result = RE_NO_TELECOM;
+				mHandler.sendEmptyMessage(SMS_SENT_ERR);
 			}
-//			if (imsi.startsWith("46000") || imsi.startsWith("46002")) {// 因为移动网络编号46000下的IMSI已经用完，所以虚拟了一个46002编号，134/159号段使用了此编号
-//				// 中国移动
-//			} else if (imsi.startsWith("46001")) {
-//				// 中国联通
-//			} else if (imsi.startsWith("46003")) {
-//				// 中国电信
-//			}
-		}else{
-			result = RE_NO_CARD;
 		}
-		return false;
+
 	}
+	
 	
 	private BroadcastReceiver smsCheck = new BroadcastReceiver() {
 		@Override
@@ -298,66 +307,12 @@ public class SMS  extends Activity{
 			}
 		}
 	};
-	
-	private class SendThread extends Thread{
 
-		/* (non-Javadoc)
-		 * @see java.lang.Thread#run()
-		 */
-		@Override
-		public void run() {
-			//是否电信卡
-			if (checkIMSI() && saveFee("test_save_egame")) {
-				// 发短信
-				PendingIntent sentPI = PendingIntent.getBroadcast(SMS.this, 0,
-						new Intent(SENT), 0);
-				registerReceiver(smsCheck, new IntentFilter(SENT));
-				isReg = true;
-				smsm.sendTextMessage(DEST_NUM, null,TXT_SMS, sentPI, null);
-			}else{
-				mHandler.sendEmptyMessage(SMS_SENT_ERR);
-			}
-		}
-
-	}
-	
-	
-	/* (non-Javadoc)
-	 * @see android.app.Activity#onConfigurationChanged(android.content.res.Configuration)
-	 */
-	@Override
-	public void onConfigurationChanged(Configuration newConfig) {
-		super.onConfigurationChanged(newConfig);
-		if (this.getResources().getConfiguration().orientation 
-	            == Configuration.ORIENTATION_LANDSCAPE) {
-	        //当前为横屏
-	    }
-	    else if (this.getResources().getConfiguration().orientation 
-	            == Configuration.ORIENTATION_PORTRAIT) {
-	        //当前为竖屏
-	    }
-	    //检测实体键盘的状态：推出或者合上    
-	    if (newConfig.hardKeyboardHidden 
-	            == Configuration.HARDKEYBOARDHIDDEN_NO){ 
-	        //实体键盘处于推出状态
-	    } 
-	    else if (newConfig.hardKeyboardHidden
-	            == Configuration.HARDKEYBOARDHIDDEN_YES){ 
-	        //实体键盘处于合上状态
-	    }
-	}
-	
 	/**
 	 * 发送成功
 	 */
 	private void sendOK(){
 //		Log.i(TAG, "sent OK.");
-//		SMS.saveIni(STR_CHECK, true);
-		//"test_save_egame"
-		if((!saveFee("remove_test_save_egame")) || (!saveFee(STR_CHECK))){
-			smsListener.smsFail(STR_CHECK,result);
-			return;
-		}
 		Intent i = new Intent();
 		i.putExtra("re", "sent");
 		SMS.this.setResult(SMS.RE,i);
@@ -366,6 +321,7 @@ public class SMS  extends Activity{
 		txt1.setText(TXT_SENT);
 		bt1.setClickable(false);
 		bt2.setText("关闭");
+		//调用smsListener
 		smsListener.smsOK(STR_CHECK);
 	}
 	
@@ -388,13 +344,19 @@ public class SMS  extends Activity{
 	 * 取消发送
 	 */
 	private void sendCancel(){
+		//删除计费成功存档
+		unSaveFee(STR_CHECK);
 		Intent i3 = new Intent();
 		i3.putExtra("re", "cancel");
 		setResult(RE,i3);
 		lock = false;
 		finish();
+		//smsListener.smsCancel(STR_CHECK, RE_INIT);
 	}
 	
+	/**
+	 * 发送完成后关闭
+	 */
 	private void end(){
 		Intent i3 = new Intent();
 		i3.putExtra("re", "end");
@@ -428,22 +390,12 @@ public class SMS  extends Activity{
 		}
 	};
 	
-	@Override
-	public boolean dispatchKeyEvent(KeyEvent e) {
-		if (e.getKeyCode() == KeyEvent.KEYCODE_BACK && e.getAction() == KeyEvent.ACTION_UP) {
-			mHandler.sendEmptyMessage(SMS_CANCEL);
-			return true;
-		}
-		return false;
-	}
-	
+	/**
+	 * 获取错误码
+	 * @return
+	 */
 	public static int getResult(){
 		return result;
-	}
-	
-	private static String getIMEI(Context context){
-		TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-		return tm.getDeviceId();
 	}
 	
 	/**
@@ -462,6 +414,10 @@ public class SMS  extends Activity{
 		}else{
 			lock = true;
 		}
+		if (activity == null || sListener == null ) {
+			Log.e(TAG, "checkFee - Activity or SMSListener is null!!");
+			return true;
+		}
 		//初始化状态
 		result = RE_INIT;
 		actv = activity;
@@ -470,6 +426,7 @@ public class SMS  extends Activity{
 			lock = false;
 			return true;
 		}
+		SMS_CLOSE = SMS_CANCEL;
 		// 根据费用大小确定目的号码
 		String fee = feeCode.substring(0,2);
 		DEST_NUM = "106598110"+fee;
@@ -503,17 +460,12 @@ public class SMS  extends Activity{
 				ini = actv.getSharedPreferences("EGAME_SMS",0);
 			}
 			SharedPreferences.Editor editor = ini.edit();
-			//判断是否为去除测试保存
-			if (feeName.equals("remove_test_save_egame")) {
-				editor.remove("test_save_egame");
-				editor.commit();
-				return true;
-			}
 			String imei = getIMEI(actv);
 			if (imei == null) {
 				result = RE_ERR_NO_IMEI;
 				return false;
 			}
+			//feeName#imei#currentTimeMillis 将存档与手机imei绑定并进行加密保存
 			String save = feeName+"#"+imei+"#"+System.currentTimeMillis();
 			String enc = Encrypter.encrypt(save);
 			editor.putString(feeName, enc);
@@ -527,6 +479,27 @@ public class SMS  extends Activity{
 	}
 	
 	/**
+	 * 删除存档
+	 * @param feeName 
+	 * @return
+	 */
+	private static boolean unSaveFee(String feeName){
+		try {
+			if (ini==null) {
+				ini = actv.getSharedPreferences("EGAME_SMS",0);
+			}
+			SharedPreferences.Editor editor = ini.edit();
+			editor.remove(feeName);
+			editor.commit();
+			return true;
+		} catch (Exception e) {
+			Log.e(TAG, "unSaveFee error.",e);
+			result = RE_ERR_UNSAVE;
+			return false;
+		}
+	}
+	
+	/**
 	 * 判断是否已扣费
 	 * @param feeName
 	 * @param context Context
@@ -536,13 +509,13 @@ public class SMS  extends Activity{
 			if (ini==null) {
 				ini = actv.getSharedPreferences("EGAME_SMS",0);
 			}
+			String fee = ini.getString(feeName, "");
+			if (fee.equals("")) {
+				return false;
+			}
 			String imei = getIMEI(actv);
 			if (imei == null) {
 				result = RE_ERR_READ_NO_IMEI;
-				return false;
-			}
-			String fee = ini.getString(feeName, "");
-			if (fee.equals("")) {
 				return false;
 			}
 			String des = Encrypter.decrypt(fee);
@@ -566,91 +539,60 @@ public class SMS  extends Activity{
 		}
 		return true;
 	}
-	/*
-	public static void saveIni(String key,String value){
-		SharedPreferences.Editor editor = ini.edit();
-		editor.putString(key, value);
-		editor.commit();
-	}
-
-	public static void saveIni(String key,int value){
-		SharedPreferences.Editor editor = ini.edit();
-		editor.putInt(key, value);
-		editor.commit();
-	}
-
-	public static void saveIni(String key,long value){
-		SharedPreferences.Editor editor = ini.edit();
-		editor.putLong(key, value);
-		editor.commit();
-	}
-
-	public static void saveIni(String key,boolean value){
-		SharedPreferences.Editor editor = ini.edit();
-		editor.putBoolean(key, value);
-		editor.commit();
-	}
-
-	public static void saveIni(String[] key,String[] value){
-		SharedPreferences.Editor editor = ini.edit();
-		for (int i = 0; i < value.length; i++) {
-			editor.putString(key[i], value[i]);
-		}
-		editor.commit();
-	}
-
-	public static void saveIni(String[] key,int[] value){
-		SharedPreferences.Editor editor = ini.edit();
-		for (int i = 0; i < value.length; i++) {
-			editor.putInt(key[i], value[i]);
-		}
-		editor.commit();
-	}
-
-	public static void saveIni(String[] key,long[] value){
-		SharedPreferences.Editor editor = ini.edit();
-		for (int i = 0; i < value.length; i++) {
-			editor.putLong(key[i], value[i]);
-		}
-		editor.commit();
-	}
-
-	public static void saveIni(String[] key,boolean[] value){
-		SharedPreferences.Editor editor = ini.edit();
-		for (int i = 0; i < value.length; i++) {
-			editor.putBoolean(key[i], value[i]);
-		}
-		editor.commit();
-	}
-
-	public static String getIniString(String key,String defValue,Context context){
-		if (ini==null) {
-			ini = context.getSharedPreferences("SMS",0);//PreferenceManager.getDefaultSharedPreferences(context);
-		}
-		return ini.getString(key, defValue);
-	}
-
-	public static boolean getIniBoolean(String key,boolean defValue,Context context){
-		if (ini==null) {
-			ini = context.getSharedPreferences("SMS",0);//PreferenceManager.getDefaultSharedPreferences(context);
-		}
-		return ini.getBoolean(key, defValue);
-	}
-
-	public static int getIniInt(String key,int defValue,Context context){
-		if (ini==null) {
-			ini = context.getSharedPreferences("SMS",0);//PreferenceManager.getDefaultSharedPreferences(context);
-		}
-		return ini.getInt(key, defValue);
-	}
-
-	public static long getIniLong(String key,long defValue,Context context){
-		if (ini==null) {
-			ini = context.getSharedPreferences("SMS",0);//PreferenceManager.getDefaultSharedPreferences(context);
-		}
-		return ini.getLong(key, defValue);
-	}*/
 	
+
+	private boolean checkIMSI(){
+			TelephonyManager telManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);  
+			/** 获取SIM卡的IMSI码 
+			 * SIM卡唯一标识：IMSI 国际移动用户识别码（IMSI：International Mobile Subscriber Identification Number）是区别移动用户的标志， 
+			 * 储存在SIM卡中，可用于区别移动用户的有效信息。IMSI由MCC、MNC、MSIN组成，其中MCC为移动国家号码，由3位数字组成， 
+			 * 唯一地识别移动客户所属的国家，我国为460；MNC为网络id，由2位数字组成， 
+			 * 用于识别移动客户所归属的移动网络，中国移动为00，中国联通为01,中国电信为03；MSIN为移动客户识别码，采用等长11位数字构成。 
+			 * 唯一地识别国内GSM移动通信网中移动客户。所以要区分是移动还是联通，只需取得SIM卡中的MNC字段即可 
+			 */
+			String imsi = telManager.getSubscriberId();
+			if (imsi != null) {
+				if (imsi.startsWith("46003")) {
+					// 中国电信
+					return true;
+				}else{
+					result = RE_NO_TELECOM;
+				}
+	//			if (imsi.startsWith("46000") || imsi.startsWith("46002")) {// 因为移动网络编号46000下的IMSI已经用完，所以虚拟了一个46002编号，134/159号段使用了此编号
+	//				// 中国移动
+	//			} else if (imsi.startsWith("46001")) {
+	//				// 中国联通
+	//			} else if (imsi.startsWith("46003")) {
+	//				// 中国电信
+	//			}
+			}else{
+				result = RE_NO_CARD;
+			}
+			return false;
+		}
+
+	private static String getIMEI(Context context){
+		TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+		return tm.getDeviceId();
+	}
+
+	@Override
+	protected void onDestroy() {
+		if (isReg) {
+			unregisterReceiver(smsCheck);
+		}
+		super.onDestroy();
+	}
+
+	@Override
+	public boolean dispatchKeyEvent(KeyEvent e) {
+		//禁止使用返回键
+//		if (e.getKeyCode() == KeyEvent.KEYCODE_BACK && e.getAction() == KeyEvent.ACTION_UP) {
+//			mHandler.sendEmptyMessage(SMS_CANCEL);
+//			return true;
+//		}
+		return false;
+	}
 
 	/* (non-Javadoc)
 	 * @see android.app.Activity#onTouchEvent(android.view.MotionEvent)
@@ -661,13 +603,6 @@ public class SMS  extends Activity{
 	}
 
 
-//	/**
-//	 * @param listener the listener to set
-//	 */
-//	public final void setListener(SMSListener listener) {
-//		this.listener = listener;
-//	}
-
 	/* (non-Javadoc)
 	 * @see android.app.Activity#onKeyDown(int, android.view.KeyEvent)
 	 */
@@ -676,11 +611,28 @@ public class SMS  extends Activity{
 		return super.onKeyDown(keyCode, event);
 	}
 
+	/* (non-Javadoc)
+	 * @see android.app.Activity#onConfigurationChanged(android.content.res.Configuration)
+	 */
 	@Override
-	protected void onDestroy() {
-		if (isReg) {
-			unregisterReceiver(smsCheck);
-		}
-		super.onDestroy();
+	public void onConfigurationChanged(Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+		if (this.getResources().getConfiguration().orientation 
+	            == Configuration.ORIENTATION_LANDSCAPE) {
+	        //当前为横屏
+	    }
+	    else if (this.getResources().getConfiguration().orientation 
+	            == Configuration.ORIENTATION_PORTRAIT) {
+	        //当前为竖屏
+	    }
+	    //检测实体键盘的状态：推出或者合上    
+	    if (newConfig.hardKeyboardHidden 
+	            == Configuration.HARDKEYBOARDHIDDEN_NO){ 
+	        //实体键盘处于推出状态
+	    } 
+	    else if (newConfig.hardKeyboardHidden
+	            == Configuration.HARDKEYBOARDHIDDEN_YES){ 
+	        //实体键盘处于合上状态
+	    }
 	}
 }
