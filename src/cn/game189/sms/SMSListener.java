@@ -23,12 +23,12 @@ public interface SMSListener {
 	 */
 	public void smsFail(String feeName,int errorCode);
 	
-//	/**
-//	 * 发送取消
-//	 * @param feeName
-//	 * @param errorCode
-//	 */
-//	public void smsCancel(String feeName,int errorCode);
+	/**
+	 * 发送取消
+	 * @param feeName
+	 * @param errorCode
+	 */
+	public void smsCancel(String feeName,int errorCode);
 	
 	
 	

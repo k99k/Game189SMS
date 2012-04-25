@@ -247,10 +247,10 @@ public class SMSTest extends Activity implements SMSListener {
 
 
 
-//	public void smsCancel(String feeName, int errorCode) {
-//		Log.e("SMSListener", "用户点击取消!计费点:"+feeName+" 错误码:"+errorCode);
-//		
-//	}
+	public void smsCancel(String feeName, int errorCode) {
+		Log.e("SMSListener", "用户点击取消!计费点:"+feeName+" 错误码:"+errorCode);
+		
+	}
 
 
 }

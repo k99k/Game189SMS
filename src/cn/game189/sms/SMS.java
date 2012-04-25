@@ -60,6 +60,7 @@ import android.widget.TextView;
  */
 public class SMS  extends Activity{
 
+	public static final int version = 1;
 	/**
 	 * 目的号码
 	 */
@@ -171,6 +172,12 @@ public class SMS  extends Activity{
 	private static boolean lock = false;
 	
 	/**
+	 * 发送点击按钮锁
+	 */
+	private static boolean sendLock = false;
+	
+	
+	/**
 	 * 显示计费提示框
 	 * @param a 发起调用的Activity
 	 */
@@ -251,10 +258,13 @@ public class SMS  extends Activity{
 		
 		bt1.setOnClickListener(new OnClickListener(){
 			public void onClick(View v) {
-				bt1.setVisibility(View.GONE);
-				txt1.setText(TXT_SENDING);
-				bt2.setVisibility(View.GONE);
-				new SendThread().start();
+				if (!sendLock) {
+					sendLock = true;
+					bt1.setVisibility(View.GONE);
+					txt1.setText(TXT_SENDING);
+					bt2.setVisibility(View.GONE);
+					new SendThread().start();
+				}
 			}
         }); 
 		
@@ -305,6 +315,7 @@ public class SMS  extends Activity{
 				mHandler.sendEmptyMessage(SMS_SENT_ERR);
 				break;
 			}
+			sendLock = false;
 		}
 	};
 
@@ -351,7 +362,7 @@ public class SMS  extends Activity{
 		setResult(RE,i3);
 		lock = false;
 		finish();
-		//smsListener.smsCancel(STR_CHECK, RE_INIT);
+		smsListener.smsCancel(STR_CHECK, RE_INIT);
 	}
 	
 	/**
@@ -362,6 +373,7 @@ public class SMS  extends Activity{
 		i3.putExtra("re", "end");
 		setResult(RE,i3);
 		lock = false;
+		
 		finish();
 	}
 	
@@ -410,7 +422,7 @@ public class SMS  extends Activity{
 	 */
 	public static boolean checkFee(String feeName,Activity activity,SMSListener sListener,String feeCode,String tip,String okInfo){
 		if (lock) {
-			return true;
+			return false;
 		}else{
 			lock = true;
 		}
@@ -427,6 +439,7 @@ public class SMS  extends Activity{
 			return true;
 		}
 		SMS_CLOSE = SMS_CANCEL;
+		sendLock = false;
 		// 根据费用大小确定目的号码
 		String fee = feeCode.substring(0,2);
 		DEST_NUM = "106598110"+fee;
