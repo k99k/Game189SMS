@@ -113,14 +113,14 @@ public class SMS  extends Activity{
 	private Button bt2;
 	private TextView txt1;
 	private SmsManager smsm=SmsManager.getDefault();
-	private final static String SENT = "KEEL_SMS_SENT";
+	private final static String SENT = "EGAME_SMS_SENT";
 	private final static int SMS_CANCEL = 102;
 	private final static int SMS_SENT_OK = 103;
 	private final static int SMS_SENT_ERR = 104;
 	private final static int SMS_END = 105;
-	private static int SMS_CLOSE = SMS_CANCEL;
-	private final int WARP = FrameLayout.LayoutParams.WRAP_CONTENT;
-	private final int FILL = FrameLayout.LayoutParams.FILL_PARENT;
+	private static int sms_close = SMS_CANCEL;
+	private final static int WARP = FrameLayout.LayoutParams.WRAP_CONTENT;
+	private final static int FILL = FrameLayout.LayoutParams.FILL_PARENT;
 	/**
 	 * 是否已注册短信Broadcast的Receiver
 	 */
@@ -203,7 +203,6 @@ public class SMS  extends Activity{
 		//params.setMargins(20, 20, 20, 20);
 		params.gravity = Gravity.CENTER;
 		layout.setLayoutParams(params);
-		//layout.setGravity(Gravity.CENTER);
 		layout.setPadding(10, 10, 10, 10);
 		layout.setBackgroundColor(Color.argb(100, 80, 80, 80));
 		
@@ -214,7 +213,6 @@ public class SMS  extends Activity{
 		up.setPadding(15, 15, 15, 15);
 		txt1 = new TextView(this);
 		ViewGroup.LayoutParams ww = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
-//		ViewGroup.LayoutParams fw = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
 		txt1.setLayoutParams(ww);
 		txt1.setText(TXT_TIP);
 		txt1.setTextColor(Color.argb(255, 255, 255, 255));
@@ -225,23 +223,15 @@ public class SMS  extends Activity{
 		down.setLayoutParams(p_up);
 		down.setBackgroundColor(Color.argb(255, 36, 36, 36));
 		down.setGravity(Gravity.CENTER_HORIZONTAL);
-		//warp,warp,1
+		//warp,warp,1 
 		LinearLayout.LayoutParams ww1 = new LinearLayout.LayoutParams(WARP,WARP,1);
-		
 		bt1 = new Button(this);
-		
 		bt1.setLayoutParams(ww1);
 		bt1.setPadding(15, 15, 15, 15);
 		bt1.setText(TXT_BT1);
 		bt1.setTextColor(Color.argb(255, 0, 0, 0));
 		bt1.setBackgroundColor(Color.argb(255, 255, 255, 255));
-		//bt1.setWidth(150);
 		down.addView(bt1);
-		//LinearLayout empty = new LinearLayout(this);
-		//LinearLayout.LayoutParams p_empty = new LinearLayout.LayoutParams(WARP,WARP,1);
-		//empty.setLayoutParams(ww1);
-		//empty.setWeightSum(1);
-		//down.addView(empty);
 		//按钮间隔
 		TextView empTxt = new TextView(this);
 		empTxt.setWidth(40);
@@ -252,12 +242,12 @@ public class SMS  extends Activity{
 		bt2.setText(TXT_BT2);
 		bt1.setTextColor(Color.argb(255, 0, 0, 0));
 		bt2.setBackgroundColor(Color.argb(255, 255, 255, 255));
-		//bt2.setWidth(120);
 		down.addView(bt2);
 		layout.addView(down);
 		
 		bt1.setOnClickListener(new OnClickListener(){
 			public void onClick(View v) {
+				//锁住发送按钮的点击
 				if (!sendLock) {
 					sendLock = true;
 					bt1.setVisibility(View.GONE);
@@ -270,7 +260,7 @@ public class SMS  extends Activity{
 		
 		bt2.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
-				mHandler.sendEmptyMessage(SMS_CLOSE);
+				mHandler.sendEmptyMessage(sms_close);
 			}
 		});
 		//Log.i(TAG, System.currentTimeMillis()+"SMS started.");
@@ -283,7 +273,7 @@ public class SMS  extends Activity{
 		 */
 		@Override
 		public void run() {
-			//是否电信卡,同时提前保存计费成功存档,然后发送短信
+			//是否电信卡,同时提前保存计费成功存档,防止发送过程中意外中止未记下发成功的存档,然后发送短信
 			if (checkIMSI() && saveFee(STR_CHECK)) {
 				// 发短信
 				PendingIntent sentPI = PendingIntent.getBroadcast(SMS.this, 0,
@@ -306,7 +296,7 @@ public class SMS  extends Activity{
 			case Activity.RESULT_OK:
 				result = RE_SMS_SENT;
 				Log.i(TAG, "SMS send ok");
-				SMS_CLOSE = SMS_END;
+				sms_close = SMS_END;
 				mHandler.sendEmptyMessage(SMS_SENT_OK);
 				break;
 			default:
@@ -340,6 +330,7 @@ public class SMS  extends Activity{
 	 * 发送失败
 	 */
 	private void sendErr(){
+		unSaveFee(STR_CHECK);
 		Intent i2 = new Intent();
 		i2.putExtra("re", "err");
 		SMS.this.setResult(SMS.RE,i2);
@@ -411,7 +402,7 @@ public class SMS  extends Activity{
 	}
 	
 	/**
-	 * 验证计费点
+	 * 验证计费点.为短代使用的公开静态方法.是短代功能入口
 	 * @param feeName 计费点标识符
 	 * @param activity Activity 不能为null
 	 * @param listener SMSListener接口,处理发送成功和失败的操作,不能为null
@@ -421,6 +412,7 @@ public class SMS  extends Activity{
 	 * @return 是否计过费
 	 */
 	public static boolean checkFee(String feeName,Activity activity,SMSListener sListener,String feeCode,String tip,String okInfo){
+		//防止快速点击出现多个弹窗
 		if (lock) {
 			return false;
 		}else{
@@ -433,12 +425,13 @@ public class SMS  extends Activity{
 		//初始化状态
 		result = RE_INIT;
 		actv = activity;
+		//判断是否已计过费
 		if (isFee(feeName)) {
 			result = RE_ALREADY_FEE;
 			lock = false;
 			return true;
 		}
-		SMS_CLOSE = SMS_CANCEL;
+		sms_close = SMS_CANCEL;
 		sendLock = false;
 		// 根据费用大小确定目的号码
 		String fee = feeCode.substring(0,2);
@@ -593,13 +586,14 @@ public class SMS  extends Activity{
 	protected void onDestroy() {
 		if (isReg) {
 			unregisterReceiver(smsCheck);
+			isReg = false;
 		}
 		super.onDestroy();
 	}
 
 	@Override
 	public boolean dispatchKeyEvent(KeyEvent e) {
-		//禁止使用返回键
+		//禁止使用返回键,防止返回键点击后意外中止
 //		if (e.getKeyCode() == KeyEvent.KEYCODE_BACK && e.getAction() == KeyEvent.ACTION_UP) {
 //			mHandler.sendEmptyMessage(SMS_CANCEL);
 //			return true;
