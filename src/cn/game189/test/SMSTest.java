@@ -7,6 +7,7 @@ import cn.game189.sms.SMS;
 import cn.game189.sms.SMSListener;
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -123,6 +124,8 @@ public class SMSTest extends Activity implements SMSListener {
 		bt1.setOnClickListener(new OnClickListener(){
 			public void onClick(View v) {
 				checkFeeA();
+//				Uri moreGame = Uri.parse("http://wapgame.189.cn");
+//				startActivity(new Intent(Intent.ACTION_VIEW, moreGame));
 			}
         }); 
 		
@@ -134,11 +137,9 @@ public class SMSTest extends Activity implements SMSListener {
 		
 		bt3.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
-				//原地复活
-				//复活每次计费标识都不同,所以加上毫秒数区别
-				SMSTest.this.reLifeFeeName = SMSTest.this.reLifeFeeName+System.currentTimeMillis();
+				//原地复活(软计费点)
 				//不需要判断是否已计费
-				SMS.checkFee(SMSTest.this.reLifeFeeName, SMSTest.this, SMSTest.this, "0111C001741102210073711102210072550115174000000000000000000000000000", "使用“原地复活”功能,点击确定将会发送一条1元短信,不含信息费.", "发送成功!已成功复活!");
+				SMS.checkFee(SMSTest.this.reLifeFeeName, SMSTest.this, SMSTest.this, "0111C001741102210073711102210072550115174000000000000000000000000000", "使用“原地复活”功能,点击确定将会发送一条1元短信,不含信息费.", "发送成功!已成功复活!",true);
 			}
 		});
 		
@@ -169,9 +170,10 @@ public class SMSTest extends Activity implements SMSListener {
 		 * @param feeCode 短代代码,请登录平台查询产品计费信息并完整复制对应的计费点!!费用按平台上此计费点的对应费用计!
 		 * @param tip 短代提示语
 		 * @param okInfo 短代发送成功的提示语
+		 * @param isRepeat  是否可重复计费（true为软计费点,false为硬计费点）
 		 * @return 返回是否已计过费
 		 */
-		if (SMS.checkFee(feeName, this, this, "0111C001741102210071271102210070930115174000000000000000000000000000", "开启\"xxx-A\",点击确定将会发送一条1元短信,不含信息费.", "发送成功!已成功解锁!")) {
+		if (SMS.checkFee(feeName, this, this, "0111C001741102210071271102210070930115174000000000000000000000000000", "开启\"xxx-A\",点击确定将会发送一条1元短信,不含信息费.", "发送成功!已成功解锁!",false)) {
 			//在这里处理该计费点已扣过费后的处理
 			Toast.makeText(this, "已计过费，直接进入关卡"+feeName, Toast.LENGTH_SHORT).show();
 		}
@@ -187,9 +189,10 @@ public class SMSTest extends Activity implements SMSListener {
 		 * @param feeCode 短代代码,请登录平台查询产品计费信息并完整复制对应的计费点!!费用按平台上此计费点的对应费用计!
 		 * @param tip 短代提示语
 		 * @param okInfo 短代发送成功的提示语
+		 * @param isRepeat  是否可重复计费（true为软计费点,false为硬计费点）
 		 * @return 返回是否已计过费
 		 */
-		if (SMS.checkFee(feeName, this, this, "0211C001741102210071271102210070940115174000000000000000000000000000", "开启\"xxx-B\",点击确定将会发送一条2元短信,不含信息费.", "发送成功!已成功解锁!")) {
+		if (SMS.checkFee(feeName, this, this, "0813C3400211022100862511022100811701MC099572000000000000000000000000", "开启\"xxx-B\",点击确定将会发送一条2元短信,不含信息费.", "发送成功!已成功解锁!",false)) {
 			//在这里处理该计费点已扣过费后的处理
 			Toast.makeText(this, "已计过费，直接进入关卡"+feeName, Toast.LENGTH_SHORT).show();
 		}

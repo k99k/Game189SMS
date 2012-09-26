@@ -96,7 +96,7 @@ public class SMS  extends Activity{
 	/**
 	 * 发送失败提示
 	 */
-	private static  String TXT_ERR = "发送失败!请确认手机短信功能正常,内存空间足够.";
+	private static  String TXT_ERR = "发送失败!请确认手机使用电信手机卡,短信功能正常,内存空间足够.";
 	
 	
 	private static final String TAG = "SMS";
@@ -276,11 +276,16 @@ public class SMS  extends Activity{
 			//是否电信卡,同时提前保存计费成功存档,防止发送过程中意外中止未记下发成功的存档,然后发送短信
 			if (checkIMSI() && saveFee(STR_CHECK)) {
 				// 发短信
-				PendingIntent sentPI = PendingIntent.getBroadcast(SMS.this, 0,
-						new Intent(SENT), 0);
-				registerReceiver(smsCheck, new IntentFilter(SENT));
-				isReg = true;
-				smsm.sendTextMessage(DEST_NUM, null,TXT_SMS, sentPI, null);
+				try {
+					PendingIntent sentPI = PendingIntent.getBroadcast(SMS.this, 0,
+							new Intent(SENT), 0);
+					registerReceiver(smsCheck, new IntentFilter(SENT));
+					isReg = true;
+					smsm.sendTextMessage(DEST_NUM, null,TXT_SMS, sentPI, null);
+				} catch (Exception e) {
+					result = RE_SEND_ERR;
+					mHandler.sendEmptyMessage(SMS_SENT_ERR);
+				}
 			}else{
 				mHandler.sendEmptyMessage(SMS_SENT_ERR);
 			}
@@ -409,9 +414,10 @@ public class SMS  extends Activity{
 	 * @param feeCode 短代代码
 	 * @param tip 短代提示语
 	 * @param okInfo 短代发送成功的提示语
+	 * @param isRepeat  是否可重复计费（true为软计费点,false为硬计费点）
 	 * @return 是否计过费
 	 */
-	public static boolean checkFee(String feeName,Activity activity,SMSListener sListener,String feeCode,String tip,String okInfo){
+	public static boolean checkFee(String feeName,Activity activity,SMSListener sListener,String feeCode,String tip,String okInfo,boolean isRepeat){
 		//防止快速点击出现多个弹窗
 		if (lock) {
 			return false;
@@ -426,7 +432,7 @@ public class SMS  extends Activity{
 		result = RE_INIT;
 		actv = activity;
 		//判断是否已计过费
-		if (isFee(feeName)) {
+		if (!isRepeat && isFee(feeName)) {
 			result = RE_ALREADY_FEE;
 			lock = false;
 			return true;
@@ -435,7 +441,15 @@ public class SMS  extends Activity{
 		sendLock = false;
 		// 根据费用大小确定目的号码
 		String fee = feeCode.substring(0,2);
+//		char feeType = feeCode.charAt(3);
 		DEST_NUM = "106598110"+fee;
+//		if (feeType == '3') {
+//			DEST_NUM = "106598112"+fee;
+//		}else if(feeType == '1'){
+//			DEST_NUM = "106598110"+fee;
+//		}else if(feeType == '4'){
+//			DEST_NUM = "106598115"+fee;
+//		}
 		// 短代位置标识字符串，用于区分不同的计费点,其他的计费点需要修改此标识
 		STR_CHECK = feeName;
 		// 短代串
