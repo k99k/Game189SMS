@@ -22,8 +22,9 @@
             </intent-filter>
         </activity>
         <activity android:name="cn.game189.test.SMSTest2"></activity> 
-        
-        <activity android:name="cn.game189.sms.SMS" android:theme="@android:style/Theme.Dialog" android:screenOrientation="portrait" ></activity> 
+        <!-- 
+        <activity android:name=".SMS_acti" android:theme="@android:style/Theme.Dialog" android:screenOrientation="portrait" ></activity> 
+         -->
         </application>
 
 </manifest>

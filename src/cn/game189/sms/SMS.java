@@ -12,24 +12,21 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.content.res.Configuration;
 import android.graphics.Color;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Gravity;
-import android.view.KeyEvent;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup.LayoutParams;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 
 /**
@@ -58,7 +55,7 @@ import android.widget.TextView;
  * @author keel
  *
  */
-public class SMS  extends Activity{
+public class SMS {
 
 	public static final int version = 1;
 	/**
@@ -109,9 +106,9 @@ public class SMS  extends Activity{
 	private static Activity actv;
 	
 	private static SharedPreferences ini;
-	private Button bt1;
-	private Button bt2;
-	private TextView txt1;
+	private static Button bt1;
+	private static Button bt2;
+	private static TextView txt1;
 	private SmsManager smsm=SmsManager.getDefault();
 	private final static String SENT = "EGAME_SMS_SENT";
 	private final static int SMS_CANCEL = 102;
@@ -124,7 +121,7 @@ public class SMS  extends Activity{
 	/**
 	 * 是否已注册短信Broadcast的Receiver
 	 */
-	private boolean isReg = false;
+	private static boolean isReg = false;
 	/**
 	 * <pre>
 	 * 错误码:
@@ -161,10 +158,6 @@ public class SMS  extends Activity{
 	public final static int RE_ERR_SAVE_FEENAME = -11;
 	public final static int RE_ERR_UNSAVE = -12;
 	
-	/**
-	 * 回传短信发送结果的标记
-	 */
-	private static final int RE = 10; 
 	
 	/**
 	 * 避免高速点击产生多个计费提示框的锁
@@ -176,95 +169,154 @@ public class SMS  extends Activity{
 	 */
 	private static boolean sendLock = false;
 	
+	private  static PopupWindow pop;
 	
+	private static Context context;
 	/**
 	 * 显示计费提示框
 	 * @param a 发起调用的Activity
 	 */
-	private static void toSMS(Activity a){
-    	Intent intent = new Intent();
-		intent.setClass(a, SMS.class);
-		a.startActivityForResult(intent,SMS.RE);
+	private static void toSMS(Activity a,View view){
+		try {
+			if (pop == null) {
+				makePopupWindow(a,view);
+			}
+			if (!flag) {
+				updatePop();
+				pop.showAtLocation(view, Gravity.CENTER, 0, 0);
+				flag = true;
+			}else{
+				clear();
+			}
+		} catch (Exception e) {
+			clear();
+		}
     }
 	
-	/* (non-Javadoc)
-	 * @see android.app.Activity#onCreate(android.os.Bundle)
-	 */
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-		LinearLayout layout = new LinearLayout(this);
-		setContentView(layout);
-		
-		//短信提示界面样式
-		layout.setOrientation(LinearLayout.VERTICAL);
-		FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(FILL,WARP);
-		//params.setMargins(20, 20, 20, 20);
-		params.gravity = Gravity.CENTER;
-		layout.setLayoutParams(params);
-		layout.setPadding(10, 10, 10, 10);
-		layout.setBackgroundColor(Color.argb(100, 80, 80, 80));
-		
-		LinearLayout up = new LinearLayout(this);
-		FrameLayout.LayoutParams p_up = new FrameLayout.LayoutParams(FILL,WARP);
-		up.setLayoutParams(p_up);
-		up.setBackgroundColor(Color.argb(255, 36, 36, 36));
-		up.setPadding(15, 15, 15, 15);
-		txt1 = new TextView(this);
-		ViewGroup.LayoutParams ww = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
-		txt1.setLayoutParams(ww);
+	private static void updatePop(){
 		txt1.setText(TXT_TIP);
-		txt1.setTextColor(Color.argb(255, 255, 255, 255));
-		up.addView(txt1);
-		layout.addView(up);
-		
-		LinearLayout down = new LinearLayout(this);
-		down.setLayoutParams(p_up);
-		down.setBackgroundColor(Color.argb(255, 36, 36, 36));
-		down.setGravity(Gravity.CENTER_HORIZONTAL);
-		//warp,warp,1 
-		LinearLayout.LayoutParams ww1 = new LinearLayout.LayoutParams(WARP,WARP,1);
-		bt1 = new Button(this);
-		bt1.setLayoutParams(ww1);
-		bt1.setPadding(15, 15, 15, 15);
-		bt1.setText(TXT_BT1);
-		bt1.setTextColor(Color.argb(255, 0, 0, 0));
-		bt1.setBackgroundColor(Color.argb(255, 255, 255, 255));
-		down.addView(bt1);
-		//按钮间隔
-		TextView empTxt = new TextView(this);
-		empTxt.setWidth(40);
-		down.addView(empTxt);
-		bt2 = new Button(this);
-		bt2.setLayoutParams(ww1);
-		bt2.setPadding(15, 15, 15, 15);
-		bt2.setText(TXT_BT2);
-		bt1.setTextColor(Color.argb(255, 0, 0, 0));
-		bt2.setBackgroundColor(Color.argb(255, 255, 255, 255));
-		down.addView(bt2);
-		layout.addView(down);
-		
+		bt1.setVisibility(View.VISIBLE);
+		bt2.setVisibility(View.VISIBLE);
 		bt1.setOnClickListener(new OnClickListener(){
-			public void onClick(View v) {
-				//锁住发送按钮的点击
-				if (!sendLock) {
-					sendLock = true;
-					bt1.setVisibility(View.GONE);
-					txt1.setText(TXT_SENDING);
-					bt2.setVisibility(View.GONE);
-					new SendThread().start();
-				}
-			}
-        }); 
-		
-		bt2.setOnClickListener(new OnClickListener() {
-			public void onClick(View v) {
-				mHandler.sendEmptyMessage(sms_close);
-			}
-		});
-		//Log.i(TAG, System.currentTimeMillis()+"SMS started.");
+  			public void onClick(View v) {
+  				//锁住发送按钮的点击
+  				if (!sendLock) {
+  					sendLock = true;
+  					bt1.setVisibility(View.GONE);
+  					txt1.setText(TXT_SENDING);
+  					bt2.setVisibility(View.GONE);
+  					inst.new SendThread().start();
+  				}
+  			}
+          }); 
+		pop.update();
 	}
+	
+	/**
+	 * 清除窗口
+	 */
+	public static void clear(){
+		lock = false;
+		flag = false;
+		if (pop != null) {
+			try {
+				pop.dismiss();
+			} catch (Exception e) {
+				Log.e("SMS2", "clear err.......");
+			}
+		}
+		if (isReg) {
+			SMS.context.unregisterReceiver(smsCheck);
+		}
+	}
+	
+	
+	private static void makePopupWindow(Context cx,View view) {
+		context = cx;
+	    LinearLayout layout = new LinearLayout(cx);
+	    
+	  //短信提示界面样式
+  		layout.setOrientation(LinearLayout.VERTICAL);
+  		FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(FILL,WARP);
+  		//params.setMargins(20, 20, 20, 20);
+  		params.gravity = Gravity.CENTER;
+  		layout.setLayoutParams(params);
+  		layout.setPadding(10, 10, 10, 10);
+  		layout.setBackgroundColor(Color.argb(100, 80, 80, 80));
+  		
+  		LinearLayout up = new LinearLayout(cx);
+  		FrameLayout.LayoutParams p_up = new FrameLayout.LayoutParams(FILL,WARP);
+  		up.setLayoutParams(p_up);
+  		up.setBackgroundColor(Color.argb(255, 36, 36, 36));
+  		up.setPadding(15, 15, 15, 15);
+  		txt1 = new TextView(cx);
+  		ViewGroup.LayoutParams ww = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
+  		txt1.setLayoutParams(ww);
+  		txt1.setText(TXT_TIP);
+  		txt1.setTextColor(Color.argb(255, 255, 255, 255));
+  		up.addView(txt1);
+  		layout.addView(up);
+  		
+  		LinearLayout down = new LinearLayout(cx);
+  		down.setLayoutParams(p_up);
+  		down.setBackgroundColor(Color.argb(255, 36, 36, 36));
+  		down.setGravity(Gravity.CENTER_HORIZONTAL);
+  		//warp,warp,1 
+  		LinearLayout.LayoutParams ww1 = new LinearLayout.LayoutParams(WARP,WARP,1);
+  		bt1 = new Button(cx);
+  		bt1.setLayoutParams(ww1);
+  		bt1.setPadding(15, 15, 15, 15);
+  		bt1.setText(TXT_BT1);
+  		bt1.setTextColor(Color.argb(255, 0, 0, 0));
+  		bt1.setBackgroundColor(Color.argb(255, 255, 255, 255));
+  		down.addView(bt1);
+  		//按钮间隔
+  		TextView empTxt = new TextView(cx);
+  		empTxt.setWidth(40);
+  		down.addView(empTxt);
+  		bt2 = new Button(cx);
+  		bt2.setLayoutParams(ww1);
+  		bt2.setPadding(15, 15, 15, 15);
+  		bt2.setText(TXT_BT2);
+  		bt1.setTextColor(Color.argb(255, 0, 0, 0));
+  		bt2.setBackgroundColor(Color.argb(255, 255, 255, 255));
+  		down.addView(bt2);
+  		layout.addView(down);
+  		
+  		bt1.setOnClickListener(new OnClickListener(){
+  			public void onClick(View v) {
+  				//锁住发送按钮的点击
+  				if (!sendLock) {
+  					sendLock = true;
+  					bt1.setVisibility(View.GONE);
+  					txt1.setText(TXT_SENDING);
+  					bt2.setVisibility(View.GONE);
+  					inst.new SendThread().start();
+  				}
+  			}
+          }); 
+  		
+  		bt2.setOnClickListener(new OnClickListener() {
+  			public void onClick(View v) {
+  				mHandler.sendEmptyMessage(sms_close);
+  			}
+  		});
+  		//创建pop
+	    pop = new PopupWindow(layout,LayoutParams.FILL_PARENT,LayoutParams.WRAP_CONTENT,true);
+        //设置PopupWindow外部区域是否可触摸
+        pop.setOutsideTouchable(false);
+	        
+//	    if (!flag ) {
+//	    	Log.e("SMS2", "-------showAtLocation");
+//	    	pop.showAtLocation(view, Gravity.CENTER, 0, 0);
+//	    	flag = true;
+//		}
+	        
+	}
+	
+	private static boolean flag = false;
+	
+	private static SMS inst = new SMS();
 	
 	private class SendThread extends Thread{
 
@@ -277,9 +329,9 @@ public class SMS  extends Activity{
 			if (checkIMSI() && saveFee(STR_CHECK)) {
 				// 发短信
 				try {
-					PendingIntent sentPI = PendingIntent.getBroadcast(SMS.this, 0,
+					PendingIntent sentPI = PendingIntent.getBroadcast(context, 0,
 							new Intent(SENT), 0);
-					registerReceiver(smsCheck, new IntentFilter(SENT));
+					SMS.context.registerReceiver(smsCheck, new IntentFilter(SENT));
 					isReg = true;
 					smsm.sendTextMessage(DEST_NUM, null,TXT_SMS, sentPI, null);
 				} catch (Exception e) {
@@ -294,7 +346,7 @@ public class SMS  extends Activity{
 	}
 	
 	
-	private BroadcastReceiver smsCheck = new BroadcastReceiver() {
+	private static BroadcastReceiver smsCheck = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context arg0, Intent arg1) {
 			switch (getResultCode()) {
@@ -317,11 +369,7 @@ public class SMS  extends Activity{
 	/**
 	 * 发送成功
 	 */
-	private void sendOK(){
-//		Log.i(TAG, "sent OK.");
-		Intent i = new Intent();
-		i.putExtra("re", "sent");
-		SMS.this.setResult(SMS.RE,i);
+	private  static void sendOK(){
 		bt1.setVisibility(View.INVISIBLE);
 		bt2.setVisibility(View.VISIBLE);
 		txt1.setText(TXT_SENT);
@@ -334,11 +382,8 @@ public class SMS  extends Activity{
 	/**
 	 * 发送失败
 	 */
-	private void sendErr(){
+	private  static void sendErr(){
 		unSaveFee(STR_CHECK);
-		Intent i2 = new Intent();
-		i2.putExtra("re", "err");
-		SMS.this.setResult(SMS.RE,i2);
 		bt1.setVisibility(View.INVISIBLE);
 		bt2.setVisibility(View.VISIBLE);
 		txt1.setText(TXT_ERR);
@@ -350,33 +395,24 @@ public class SMS  extends Activity{
 	/**
 	 * 取消发送
 	 */
-	private void sendCancel(){
+	private  static void sendCancel(){
 		//删除计费成功存档
 		unSaveFee(STR_CHECK);
-		Intent i3 = new Intent();
-		i3.putExtra("re", "cancel");
-		setResult(RE,i3);
-		lock = false;
-		finish();
+		clear();
 		smsListener.smsCancel(STR_CHECK, RE_INIT);
 	}
 	
 	/**
 	 * 发送完成后关闭
 	 */
-	private void end(){
-		Intent i3 = new Intent();
-		i3.putExtra("re", "end");
-		setResult(RE,i3);
-		lock = false;
-		
-		finish();
+	private  static void end(){
+		clear();
 	}
 	
 	/**
 	 * 消息处理Handler,用于更新界面
 	 */
-	private Handler mHandler = new Handler(){
+	private  static Handler mHandler = new Handler(){
 		@Override
 		public void handleMessage(Message msg) {
 			super.handleMessage(msg);
@@ -428,7 +464,10 @@ public class SMS  extends Activity{
 			Log.e(TAG, "checkFee - Activity or SMSListener is null!!");
 			return true;
 		}
+		View view = activity.getWindow().getDecorView();
 		//初始化状态
+		isReg = false;
+		clear();
 		result = RE_INIT;
 		actv = activity;
 		//判断是否已计过费
@@ -460,7 +499,7 @@ public class SMS  extends Activity{
 		TXT_SENT = okInfo;
 		//smsListener获取结果
 		smsListener = sListener;
-		toSMS(actv);
+		toSMS(actv,view);
 		return false;
 	}
 
@@ -562,7 +601,7 @@ public class SMS  extends Activity{
 	
 
 	private boolean checkIMSI(){
-			TelephonyManager telManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);  
+			TelephonyManager telManager = (TelephonyManager)context.getSystemService(Context.TELEPHONY_SERVICE);  
 			/** 获取SIM卡的IMSI码 
 			 * SIM卡唯一标识：IMSI 国际移动用户识别码（IMSI：International Mobile Subscriber Identification Number）是区别移动用户的标志， 
 			 * 储存在SIM卡中，可用于区别移动用户的有效信息。IMSI由MCC、MNC、MSIN组成，其中MCC为移动国家号码，由3位数字组成， 
@@ -596,67 +635,4 @@ public class SMS  extends Activity{
 		return tm.getDeviceId();
 	}
 
-	@Override
-	protected void onDestroy() {
-		if (isReg) {
-			unregisterReceiver(smsCheck);
-			isReg = false;
-		}
-		super.onDestroy();
-	}
-
-	@Override
-	public boolean dispatchKeyEvent(KeyEvent e) {
-		//禁止使用返回键,防止返回键点击后意外中止
-//		if (e.getKeyCode() == KeyEvent.KEYCODE_BACK && e.getAction() == KeyEvent.ACTION_UP) {
-//			mHandler.sendEmptyMessage(SMS_CANCEL);
-//			return true;
-//		}
-		return false;
-	}
-
-	/* (non-Javadoc)
-	 * @see android.app.Activity#onTouchEvent(android.view.MotionEvent)
-	 */
-	@Override
-	public boolean onTouchEvent(MotionEvent event) {
-		return true;
-	}
-
-	
-	
-
-
-	/* (non-Javadoc)
-	 * @see android.app.Activity#onKeyDown(int, android.view.KeyEvent)
-	 */
-	@Override
-	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		return super.onKeyDown(keyCode, event);
-	}
-
-	/* (non-Javadoc)
-	 * @see android.app.Activity#onConfigurationChanged(android.content.res.Configuration)
-	 */
-	@Override
-	public void onConfigurationChanged(Configuration newConfig) {
-		super.onConfigurationChanged(newConfig);
-		if (this.getResources().getConfiguration().orientation 
-	            == Configuration.ORIENTATION_LANDSCAPE) {
-	        //当前为横屏
-	    }
-	    else if (this.getResources().getConfiguration().orientation 
-	            == Configuration.ORIENTATION_PORTRAIT) {
-	        //当前为竖屏
-	    }
-	    //检测实体键盘的状态：推出或者合上    
-	    if (newConfig.hardKeyboardHidden 
-	            == Configuration.HARDKEYBOARDHIDDEN_NO){ 
-	        //实体键盘处于推出状态
-	    } 
-	    else if (newConfig.hardKeyboardHidden
-	            == Configuration.HARDKEYBOARDHIDDEN_YES){ 
-	        //实体键盘处于合上状态
-	    }
-	}
 }
