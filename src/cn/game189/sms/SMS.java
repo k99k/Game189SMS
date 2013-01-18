@@ -13,8 +13,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.os.Handler;
-import android.os.Message;
 import android.telephony.SmsManager;
 import android.telephony.TelephonyManager;
 import android.util.Log;
@@ -298,11 +296,12 @@ public class SMS {
   		
   		bt2.setOnClickListener(new OnClickListener() {
   			public void onClick(View v) {
-  				mHandler.sendEmptyMessage(sms_close);
+  				//mHandler.sendEmptyMessage(sms_close);
+  				actv.runOnUiThread(inst.new SHandler(sms_close));
   			}
   		});
   		//创建pop
-	    pop = new PopupWindow(layout,LayoutParams.FILL_PARENT,LayoutParams.WRAP_CONTENT,true);
+	    pop = new PopupWindow(layout,LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT,true);
         //设置PopupWindow外部区域是否可触摸
         pop.setOutsideTouchable(false);
 	        
@@ -336,10 +335,12 @@ public class SMS {
 					smsm.sendTextMessage(DEST_NUM, null,TXT_SMS, sentPI, null);
 				} catch (Exception e) {
 					result = RE_SEND_ERR;
-					mHandler.sendEmptyMessage(SMS_SENT_ERR);
+					actv.runOnUiThread(inst.new SHandler(SMS_SENT_ERR));
+//					mHandler.sendEmptyMessage(SMS_SENT_ERR);
 				}
 			}else{
-				mHandler.sendEmptyMessage(SMS_SENT_ERR);
+//				mHandler.sendEmptyMessage(SMS_SENT_ERR);
+				actv.runOnUiThread(inst.new SHandler(SMS_SENT_ERR));
 			}
 		}
 
@@ -354,12 +355,14 @@ public class SMS {
 				result = RE_SMS_SENT;
 				Log.i(TAG, "SMS send ok");
 				sms_close = SMS_END;
-				mHandler.sendEmptyMessage(SMS_SENT_OK);
+//				mHandler.sendEmptyMessage(SMS_SENT_OK);
+				actv.runOnUiThread(inst.new SHandler(SMS_SENT_OK));
 				break;
 			default:
 				result = RE_SEND_ERR;
 				Log.e(TAG, "SMS send err:" + getResultCode());
-				mHandler.sendEmptyMessage(SMS_SENT_ERR);
+//				mHandler.sendEmptyMessage(SMS_SENT_ERR);
+				actv.runOnUiThread(inst.new SHandler(SMS_SENT_ERR));
 				break;
 			}
 			sendLock = false;
@@ -409,14 +412,42 @@ public class SMS {
 		clear();
 	}
 	
-	/**
-	 * 消息处理Handler,用于更新界面
-	 */
-	private  static Handler mHandler = new Handler(){
-		@Override
-		public void handleMessage(Message msg) {
-			super.handleMessage(msg);
-			switch (msg.what) {
+//	/**
+//	 * 消息处理Handler,用于更新界面
+//	 */
+//	private  static Handler mHandler = new Handler(){
+//		@Override
+//		public void handleMessage(Message msg) {
+//			super.handleMessage(msg);
+//			switch (msg.what) {
+//			case SMS_SENT_OK:
+//				sendOK();
+//				break;
+//			case SMS_SENT_ERR:
+//				sendErr();
+//				break;
+//			case SMS_CANCEL:
+//				sendCancel();
+//				break;
+//			case SMS_END:
+//				end();
+//				break;
+//			}
+//			
+//		}
+//	};
+	
+	
+	class SHandler implements Runnable {
+
+		SHandler(int msg){
+			this.msg = msg;
+		}
+		
+		private int msg;
+		
+		public void run() {
+			switch (msg) {
 			case SMS_SENT_OK:
 				sendOK();
 				break;
@@ -430,9 +461,9 @@ public class SMS {
 				end();
 				break;
 			}
-			
 		}
-	};
+
+	}
 	
 	/**
 	 * 获取错误码
