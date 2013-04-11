@@ -16,13 +16,6 @@
 <!-- 声明权限 -->
 <uses-permission android:name="android.permission.SEND_SMS" /> 
 <uses-permission android:name="android.permission.READ_PHONE_STATE" /> 
-
-<activity android:name="cn.game189.sms.SMS"  android:theme="@android:style/Theme.Dialog" ></activity> 
-<!-- 可使用android:screenOrientation指定是否横屏,删除即为自适应，
-android:theme="@android:style/Theme.Dialog"
-设定Activity为弹窗(Dialog)方式,不设置则为全屏方式(部分游戏只适用全屏方式)；-->
-
-
 3.创建一个或多个SMSListener处理不同的计费点发送结果,具体使用详见样例代码;
 4.调用静态方法SMS.checkFee(),注意feeName参数为计费点标识(不可含有#号),每个计费点必须不同
 5.可调用SMS.getResult()随时查看当前错误码.

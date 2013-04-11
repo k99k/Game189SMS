@@ -35,17 +35,14 @@ import android.widget.TextView;
  * 1.在项目中引入sms.jar包;
  * 2.在AndroidManifest.xml中添加: 
  * {@code 
+ * 
  * <!-- 声明权限 -->
  * <uses-permission android:name="android.permission.SEND_SMS" /> 
  * <uses-permission android:name="android.permission.READ_PHONE_STATE" />
- * 
- * <activity android:name="cn.game189.sms.SMS"  android:theme="@android:style/Theme.Dialog" ></activity> 
- * <!-- android:screenOrientation指定是否横屏,删除即为自适应，
- * android:theme="@android:style/Theme.Dialog"
- * 设定Activity为弹窗(Dialog)方式,不设置则为全屏方式(部分游戏只适用全屏方式)；-->
+ * (前一版本需要设置Activity,本版本不再需要)
  * 
  * }
- * 3.创建一个或多个SMSListener处理不同的计费点短信发送结果,具体使用详见样例代码。
+ * 3.创建SMSListener处理不同的计费点短信发送结果,具体使用详见样例代码。
  * 4.调用静态方法SMS.checkFee()判断是否已计费,注意feeName参数为计费点标识(不可含有#号),每个计费点必须不同。在未成功计费时会自动弹出计费确认提示框，此时checkFee方法返回false。在弹出计费提示框后，通过SMSListener的smsOK接口可判断用户是否确认计费并成功发送短信，可在smsOK方法中处理本次计费成功后的操作（如打开关卡，提供对应道具等），在短信发送成功后会自动加密保存已计费状态(与设备号绑定加密)，下次调用checkFee方法时将返回true。
  * 5.可调用SMS.getResult()随时查看当前错误码.
  * </pre>
@@ -94,7 +91,7 @@ public class SMS {
 	private static  String TXT_ERR = "发送失败!请确认手机使用电信手机卡,短信功能正常,内存空间足够.";
 	
 	
-	private static final String TAG = "SMS";
+	private static final String TAG = "EGAME_SMS";
 	
 	/**
 	 * 回传发送结果的SMSListener
@@ -474,6 +471,32 @@ public class SMS {
 	}
 	
 	/**
+	 * 游戏启动
+	 * @param activity
+	 */
+	public static void gameStart(Activity activity) {
+		Intent intent = new Intent("com.egame.opengameaction");
+	//actionType（int） 调用类型：1 游戏启动，2 游戏退出，3 触发计费点。
+	//packageName （String） 应用包名 activity.getPackageName();
+		intent.putExtra("actionType", 1);
+		intent.putExtra("packageName", activity.getPackageName());
+		Log.d(TAG, "game start");
+		activity.sendBroadcast(intent);
+	}
+	
+	/**
+	 * 游戏退出
+	 * @param activity
+	 */
+	public static void gameExit(Activity activity) {
+		Intent intent = new Intent("com.egame.opengameaction");
+		intent.putExtra("actionType", 2);
+		intent.putExtra("packageName", activity.getPackageName());
+		Log.d(TAG, "game exit");
+		activity.sendBroadcast(intent);
+	}
+	
+	/**
 	 * 验证计费点.为短代使用的公开静态方法.是短代功能入口
 	 * @param feeName 计费点标识符
 	 * @param activity Activity 不能为null
@@ -493,7 +516,7 @@ public class SMS {
 		}
 		if (activity == null || sListener == null ) {
 			Log.e(TAG, "checkFee - Activity or SMSListener is null!!");
-			return true;
+			return false;
 		}
 		View view = activity.getWindow().getDecorView();
 		//初始化状态
@@ -531,6 +554,12 @@ public class SMS {
 		//smsListener获取结果
 		smsListener = sListener;
 		toSMS(actv,view);
+		
+		Intent intent = new Intent("com.egame.opengameaction");
+		intent.putExtra("actionType", 3);
+		intent.putExtra("packageName", activity.getPackageName());
+		activity.sendBroadcast(intent);
+		Log.d(TAG, "opengameaction");
 		return false;
 	}
 

@@ -26,9 +26,6 @@ public class SMSTest2 extends Activity {
 	private Button bt3;
 	private Button bt4;
 	private Button bt5;
-	
-	
-	
 	private Button bt7;
 	
 	private String reLifeFeeName = "reLife";
@@ -173,6 +170,21 @@ public class SMSTest2 extends Activity {
 			}
 		});
 		
+		//调用游戏开始
+		SMS.gameStart(this);
+		
+	}
+
+
+
+	/* (non-Javadoc)
+	 * @see android.app.Activity#onDestroy()
+	 */
+	@Override
+	protected void onDestroy() {
+		//调用游戏结束
+		SMS.gameExit(this);
+		super.onDestroy();
 	}
 	
 	
