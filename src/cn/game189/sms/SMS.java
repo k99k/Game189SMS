@@ -211,12 +211,14 @@ public class SMS {
 	 * 清除窗口
 	 */
 	public static void clear(){
-		lock = false;
+		
 		flag = false;
-		if (pop != null) {
+		if (pop != null && pop.isShowing()) {
 			try {
 				pop.dismiss();
 			} catch (Exception e) {
+				e.printStackTrace();
+				Log.e("SMS2", e.getMessage());
 				Log.e("SMS2", "clear err.......");
 			}
 		}
@@ -557,9 +559,11 @@ public class SMS {
 		
 		Intent intent = new Intent("com.egame.opengameaction");
 		intent.putExtra("actionType", 3);
+		intent.putExtra("chargeCode", feeCode);
 		intent.putExtra("packageName", activity.getPackageName());
 		activity.sendBroadcast(intent);
 		Log.d(TAG, "opengameaction");
+		lock = false;
 		return false;
 	}
 
